@@ -43,8 +43,8 @@ body {
     height: 20px;
     background-color: red;
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 48%;
+    left: 48.5%;
     border-radius: 50%;
     box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
 }
@@ -102,3 +102,17 @@ body {
 }
 
 
+
+#startButtonContainer,
+#pauseButtonContainer,
+#restartButtonContainer {
+    position: absolute;
+    width: 100%;
+    top: 420px;
+    text-align: center;
+}
+
+#startButton {
+    padding: 10px 20px;
+    font-size: 20px;
+}

@@ -1,89 +1,149 @@
+// DOM elements
 const paddleA = document.getElementById('paddleA');
 const paddleB = document.getElementById('paddleB');
 const ball = document.getElementById('ball');
+const startButton = document.getElementById('startButton');
+const pauseButton = document.getElementById('pauseButton');
+const restartButton = document.getElementById('restartButton');
+const scoreAElement = document.getElementById('scoreA');
+const scoreBElement = document.getElementById('scoreB');
+const startButtonContainer = document.getElementById('startButtonContainer');
+const restartButtonContainer = document.getElementById('restartButtonContainer');
 
-let paddleHeight = 70;
-let paddleWidth = 20;
-let ballSize = 15;
-let boardWidth = 600;
-let boardHeight = 400;
+// Game settings
+const paddleHeight = 70;
+const paddleWidth = 20;
+const ballSize = 15;
+const boardWidth = 600;
+const boardHeight = 400;
+const paddleSpeed = 40;
+const maxScore = 2;
+
+// Game state
 let directionX = 2;
 let directionY = 2;
-let paddleSpeed = 40;
 let ballX = boardWidth / 2 - ballSize / 2;
 let ballY = boardHeight / 2 - ballSize / 2;
+let scoreA = 0;
+let scoreB = 0;
+let gameInterval = null;
+let isPaused = false;
+let isMultiplayer = false;
 
-function movePaddles(event) {
+
+
+
+// Sounds
+const hitSound = new Audio('hit.wav');
+
+function movePaddleA(event) {
     const key = event.key;
     const paddleAY = paddleA.offsetTop;
 
-    // Move paddle A with arrow keys
-    if (key === 'ArrowUp' && paddleAY > 0) {
+    if (key === 'w' && paddleAY > 0) {
         paddleA.style.top = `${paddleAY - paddleSpeed}px`;
-    } else if (key === 'ArrowDown' && (paddleAY + paddleHeight) < boardHeight) {
+    } else if (key === 's' && (paddleAY + paddleHeight) < boardHeight) {
         paddleA.style.top = `${paddleAY + paddleSpeed}px`;
+    } else if (isMultiplayer && key === 'ArrowUp' && paddleB.offsetTop > 0) {
+        paddleB.style.top = `${paddleB.offsetTop - paddleSpeed}px`;
+    } else if (isMultiplayer && key === 'ArrowDown' && (paddleB.offsetTop + paddleHeight) < boardHeight) {
+        paddleB.style.top = `${paddleB.offsetTop + paddleSpeed}px`;
+    }
+}
+
+function movePaddleB() {
+    if (!isMultiplayer) {
+        if (ballY + ballSize > paddleB.offsetTop + paddleHeight / 2) {
+            paddleB.style.top = `${Math.min(boardHeight - paddleHeight, paddleB.offsetTop + paddleSpeed)}px`;
+        } else if (ballY < paddleB.offsetTop + paddleHeight / 2) {
+            paddleB.style.top = `${Math.max(0, paddleB.offsetTop - paddleSpeed)}px`;
+        }
     }
 }
 
 function moveBall() {
-    // ... existing ball movement logic ...
+    ballX += directionX;
+    ballY += directionY;
 
-    // Move the computer paddle (paddleB) to follow the ball
-    if (ballY + ballSize > paddleB.offsetTop + paddleHeight / 2) {
-        paddleB.style.top = `${Math.min(boardHeight - paddleHeight, paddleB.offsetTop + paddleSpeed)}px`;
-    } else if (ballY < paddleB.offsetTop + paddleHeight / 2) {
-        paddleB.style.top = `${Math.max(0, paddleB.offsetTop - paddleSpeed)}px`;
+    if (ballY < 0 || ballY + ballSize > boardHeight) {
+        directionY *= -1;
     }
 
-    // ... existing ball position updating logic ...
-}
+    movePaddleB();
 
-
-    // Paddle collision logic
-    // If the ball hits the left paddle
     if (ballX <= paddleWidth && ballY + ballSize >= paddleA.offsetTop && ballY <= paddleA.offsetTop + paddleHeight) {
-        directionX = Math.abs(directionX); // Change the horizontal direction to positive, moving right
-    } 
-    // If the ball hits the right paddle
-    else if (ballX + ballSize >= boardWidth - paddleWidth && ballY + ballSize >= paddleB.offsetTop && ballY <= paddleB.offsetTop + paddleHeight) {
-        directionX = -Math.abs(directionX); // Change the horizontal direction to negative, moving left
-    }
-    // If the ball goes beyond the left edge (missed by left paddle)
-    else if (ballX < 0) {
-        // You can add logic to handle the scoring here if the right player scores
-        resetBall(); // Reset the ball to the center or serve from the left paddle
-    }
-    // If the ball goes beyond the right edge (missed by right paddle)
-    else if (ballX + ballSize > boardWidth) {
-        // You can add logic to handle the scoring here if the left player scores
-        resetBall(); // Reset the ball to the center or serve from the right paddle
+        directionX = Math.abs(directionX);
+        hitSound.play();
+    } else if (ballX + ballSize >= boardWidth - paddleWidth && ballY + ballSize >= paddleB.offsetTop && ballY <= paddleB.offsetTop + paddleHeight) {
+        directionX = -Math.abs(directionX);
+        hitSound.play();
+    } else if (ballX < 0) {
+        scoreB++;
+        updateScore();
+        resetBall();
+        if (scoreB === maxScore) {
+            gameOver('Player B');
+        }
+    } else if (ballX + ballSize > boardWidth) {
+        scoreA++;
+        updateScore();
+        resetBall();
+        if (scoreA === maxScore) {
+            gameOver('Player A');
+        }
     }
 
     ball.style.left = `${ballX}px`;
     ball.style.top = `${ballY}px`;
-
+}
 
 function resetBall() {
-    // Assuming player B missed the ball
-    scoreA++;
-    updateScore();
-    // ... rest of the resetBall logic ...
+    ballX = boardWidth / 2 - ballSize / 2;
+    ballY = boardHeight / 2 - ballSize / 2;
+    directionX = 2;
+    directionY = 2;
 }
-
-
 
 function updateScore() {
-    document.getElementById('scoreA').textContent = scoreA;
-    document.getElementById('scoreB').textContent = scoreB;
+    scoreAElement.textContent = scoreA;
+    scoreBElement.textContent = scoreB;
 }
 
-let scoreA = 0;
-let scoreB = 0;
+function startGame() {
+    startButtonContainer.style.display = 'none';
+    gameInterval = setInterval(moveBall, 10);
+}
 
+function gameOver(winner) {
+    clearInterval(gameInterval);
+    alert(`${winner} wins with a score of ${maxScore}!`);
+    restartButtonContainer.style.display = 'block';
+}
 
-// Start the game loop
-setInterval(moveBall, 10);
+function togglePause() {
+    if (isPaused) {
+        gameInterval = setInterval(moveBall, 10);
+        pauseButton.innerText = 'Pause Game';
+        isPaused = false;
+    } else {
+        clearInterval(gameInterval);
+        pauseButton.innerText = 'Resume Game';
+        isPaused = true;
+    }
+}
 
+document.addEventListener('keydown', movePaddleA);
+startButton.addEventListener('click', function() {
+    isMultiplayer = confirm('Do you want to play with another human? Click OK for Yes, Cancel for No.');
+    startGame();
+});
+pauseButton.addEventListener('click', togglePause);
 
-// Listen for keydown events for paddle movement
-document.addEventListener('keydown', movePaddles);
+restartButton.addEventListener('click', function() {
+    scoreA = 0;
+    scoreB = 0;
+    updateScore();
+    resetBall();
+    restartButtonContainer.style.display = 'none';
+    startGame();
+});
